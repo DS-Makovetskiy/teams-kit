@@ -9,6 +9,7 @@ set "FILE_STATUS="
 set "online_size_kb=-"
 set "local_size_kb=-"
 set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
+set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
 set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
 set "INSTALL_SCRIPT=%~dp0\scripts\install.ps1"
 set "DOWNLOAD_PATH=%~dp0teams\MSTeams-x64.msix"
@@ -25,7 +26,7 @@ set "COLOR_RESET=[0m"
 cls
 echo Проверка установленных версий Microsoft Teams...
 
-powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0check_teams.ps1" > teams_status.txt
+powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0scripts\CheckTeams.ps1" > teams_status.txt
 
 for /f "tokens=1 delims=" %%A in (teams_status.txt) do set TEAMS_STATUS=%%A
 del teams_status.txt
