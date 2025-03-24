@@ -26,10 +26,19 @@ set "COLOR_RESET=[0m"
 cls
 echo Проверка установленных версий Microsoft Teams...
 
-powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0scripts\CheckTeams.ps1" > teams_status.txt
+::
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\CheckTeams.ps1"
+set /p teams_status=<CheckTeams.txt
+pause
+del CheckTeams.txt
+echo %teams_status%
 
-for /f "tokens=1 delims=" %%A in (teams_status.txt) do set TEAMS_STATUS=%%A
-del teams_status.txt
+::
+
+::powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0scripts\CheckTeams.ps1" > teams_status.txt
+::
+::for /f "tokens=1 delims=" %%A in (teams_status.txt) do set TEAMS_STATUS=%%A
+::del teams_status.txt
 
 :: Проверка доступности сайта
 curl -s --head %SITE_URL% | findstr /R "200 | 302" >nul

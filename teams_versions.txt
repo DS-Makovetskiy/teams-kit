@@ -1,8 +1,0 @@
-%A 
-Get-AppxProvisionedPackage : The requested operation requires elevation. 
-At C:\dev\teams-kit\scripts\CheckTeams.ps1:1 char:1 
-+ Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like " ... 
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-    + CategoryInfo          : NotSpecified: (:) [Get-AppxProvisionedPackage], COMException 
-    + FullyQualifiedErrorId : Microsoft.Dism.Commands.GetAppxProvisionedPackageCommand 
-ECHO is off.
