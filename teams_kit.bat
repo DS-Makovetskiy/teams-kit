@@ -9,6 +9,7 @@ set "FILE_STATUS="
 set "online_size_kb=-"
 set "local_size_kb=-"
 set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
+set "TEAMS_STATUS_FILE=%~dp0scripts\teams_status.txt"
 set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
 set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
 set "INSTALL_SCRIPT=%~dp0\scripts\install.ps1"
@@ -20,25 +21,14 @@ set "COLOR_GREEN=[32m"
 set "COLOR_RED=[31m"
 set "COLOR_RESET=[0m"
 
-
-:check_teams
 :: Проверка установленных версий Teams
+:check_teams
 cls
 echo Проверка установленных версий Microsoft Teams...
 
-::
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\CheckTeams.ps1"
-set /p teams_status=<CheckTeams.txt
-pause
-del CheckTeams.txt
-echo %teams_status%
-
-::
-
-::powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0scripts\CheckTeams.ps1" > teams_status.txt
-::
-::for /f "tokens=1 delims=" %%A in (teams_status.txt) do set TEAMS_STATUS=%%A
-::del teams_status.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File %CHECK_SCRIPT%
+set /p TEAMS_STATUS=<"%TEAMS_STATUS_FILE%"
+del "%TEAMS_STATUS_FILE%"
 
 :: Проверка доступности сайта
 curl -s --head %SITE_URL% | findstr /R "200 | 302" >nul
@@ -64,9 +54,14 @@ if defined online_size set /a online_size_kb=%online_size%/1024
 if defined local_size set /a local_size_kb=%local_size%/1024
 cls
 
-if "%TEAMS_STATUS%"=="NOT_INSTALLED" goto install_menu
-if "%TEAMS_STATUS%"=="INSTALLED" goto remove_menu
+
+if "%TEAMS_STATUS%"=="Not found" (
+    goto install_menu
+) else (
+    goto remove_menu
+)
 :: Проверка установленных версий Teams
+
 
 :install_menu
 :: Вывод статусов
@@ -130,6 +125,7 @@ if "%FILE_STATUS%"=="Доступен" (
 
 echo.
 echo Microsoft Teams установлен.
+echo %TEAMS_STATUS%
 echo.
 echo Выберите действие:
 echo 1. Удалить Classic Teams
