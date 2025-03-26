@@ -13,8 +13,8 @@ set "DISABLED_FILE="
 set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
 set "TEAMS_STATUS_FILE=%~dp0scripts\teams_status.txt"
 set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
-set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
-set "INSTALL_SCRIPT=%~dp0\scripts\install.ps1"
+::set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
+set "INSTALL_SCRIPT=%~dp0\scripts\InstallTeamsAllUsers.ps1"
 set "DOWNLOAD_PATH=%~dp0teams\MSTeams-x64.msix"
 
 :: Определяем цвета
@@ -23,76 +23,88 @@ set "COLOR_RED=[31m"
 set "COLOR_RESET=[0m"
 set "COLOR_GRAY=[90m"
 
-:: Проверка установленных версий Teams
+:: # Проверка установленных версий MS Teams
 :check_teams
 cls
+
+:: ## Запуск скрипта по проверке установленных версий MS Teams
 echo Проверка установленных версий MS Teams...
 
-:: Запуск скрипта по проверке установленных версий Teams
 powershell -NoProfile -ExecutionPolicy Bypass -File %CHECK_SCRIPT%
 set /p TEAMS_STATUS=<"%TEAMS_STATUS_FILE%"
 del "%TEAMS_STATUS_FILE%"
 
+:: ## Проверка доступности сайта
 echo Проверка доступности сайта для скачивания MS Teams...
-:: Проверка доступности сайта
+
 curl -s --head %SITE_URL% | findstr /R "200 | 302" >nul
 if %errorlevel%==0 (
     set "SITE_STATUS=Доступен"
-	:: Получаем размер файла с оф. сайта
+	:: ### Получаем размер файла с оф. сайта
 	for /f %%A in ('powershell -Command "try { (Invoke-WebRequest -Uri '%SITE_URL%' -Method Head).Headers['Content-Length'] } catch { 'error' }"') do set "online_size=%%A"
 ) else (
     set "SITE_STATUS=Не доступен"
 )
 
+:: ## Проверка наличия локальной версии файла в папке "teams"
 echo Проверка доступности локального файла MS Teams...
-:: Проверка наличия локальной версии файла в папке "teams"
+
 if exist "%LOCAL_FILE%" (
     set "FILE_STATUS=Доступен"
-	:: Получаем размер локального файла
+	:: ### Получаем размер локального файла
 	for /f %%A in ('wmic datafile where "name='%LOCAL_FILE:\=\\%'" get FileSize ^| findstr [0-9]') do set "local_size=%%A"
 ) else (
     set "FILE_STATUS=Файл не найден"
 )
 
-:: Рассчитываем размер в KB
+:: ## Рассчитываем размер в KB
 if defined online_size set /a ONL_SIZE_KB=%online_size%/1024
 if defined local_size set /a LOC_SIZE_KB=%local_size%/1024
+
+:: ## Определение статусов сайта и локального файла, выделение цветом
+if "%SITE_STATUS%"=="Доступен" (
+    set "display_site_status=%COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]"
+) else (
+    set "display_site_status=%COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]"
+)
+
+if "%FILE_STATUS%"=="Доступен" (
+    set "display_file_status=%COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]"
+) else (
+    set "display_file_status=%COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]"
+)
+
+:: ## Определяем доступность пунктов
+if not "%SITE_STATUS%"=="Доступен" (
+    set "DISABLED_SITE=%COLOR_GRAY%"
+) else (
+    set "DISABLED_SITE="
+)
+
+if not "%FILE_STATUS%"=="Доступен" (
+    set "DISABLED_FILE=%COLOR_GRAY%"
+) else (
+    set "DISABLED_FILE="
+)
 cls
 
-:: В зависимости от статуса Teams выводим меню
+:: ## В зависимости от статуса Teams выводим меню
 if "%TEAMS_STATUS%"=="Not found" (
     goto install_menu
 ) else (
     goto remove_menu
 )
-:: Проверка установленных версий Teams
+:: # Проверка установленных версий Teams
 
 
-:: Установка Teams
+:: # Установка Teams
 :install_menu
-:: Определение статусов, выделение цветом
-if "%SITE_STATUS%"=="Доступен" (
-    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
-) else (
-    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
-)
 
-if "%FILE_STATUS%"=="Доступен" (
-    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
-) else (
-    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
-)
+:: ## Вывод статусов
+echo Статус сайта: %display_site_status%
+echo Статус файла: %display_file_status%
 
-:: Определяем доступность пунктов
-if not "%SITE_STATUS%"=="Доступен" set "DISABLED_SITE=%COLOR_GRAY%"
-if not "%FILE_STATUS%"=="Доступен" set "DISABLED_FILE=%COLOR_GRAY%"
-
-if not "%SITE_STATUS%"=="Доступен" if not "%FILE_STATUS%"=="Доступен" (
-    set "DISABLED_SITE=%COLOR_GRAY%"
-    set "DISABLED_FILE=%COLOR_GRAY%"
-)
-
-:: Вывод меню с учетом недоступных пунктов
+:: ## Вывод меню с учетом недоступных пунктов
 echo.
 echo Microsoft Teams не установлен.
 echo.
@@ -102,32 +114,25 @@ echo 3. Повторить проверку
 echo 4. Выход
 echo.
 
-:: Запрос выбора
+:: ## Запрос выбора
 set /p choice=Введите номер пункта: 
 
-:: Обрабатываем выбор
+:: ## Обрабатываем выбор
 if "%choice%"=="1" if "%SITE_STATUS%"=="Доступен" (goto download_file)
-if "%choice%"=="2" if "%FILE_STATUS%"=="Доступен" (powershell -NoProfile -ExecutionPolicy Bypass -File %INSTALL_SCRIPT%)
+if "%choice%"=="2" if "%FILE_STATUS%"=="Доступен" (goto install_teams)
 if "%choice%"=="3" (goto check_teams)
 if "%choice%"=="4" (exit)
 
 cls
 goto install_menu
+:: # Установка Teams
 
+:: # Удаление Teams
 :remove_menu
-:: Вывод статусов
-if "%SITE_STATUS%"=="Доступен" (
-    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
-) else (
-    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
-)
 
-if "%FILE_STATUS%"=="Доступен" (
-    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
-) else (
-    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
-)
-:: Вывод статусов
+:: ## Вывод статусов
+echo Статус сайта: %display_site_status%
+echo Статус файла: %display_file_status%
 
 echo.
 echo Microsoft Teams установлен.
@@ -161,16 +166,33 @@ if "%choice%"=="1" (powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0re
 goto remove_menu
 
 
-:: Скачивание файла
+:: # Скачивание файла
 :download_file
+if not exist "%~dp0teams" (
+    mkdir "%~dp0teams"
+)
+
+echo.
 echo Загружаем новую версию Teams...
+
 powershell -Command "Start-BitsTransfer -Source '%SITE_URL%' -Destination '%DOWNLOAD_PATH%'"
 
 if exist "%DOWNLOAD_PATH%" (
     echo Файл загружен успешно.
+    echo Выполняется установка...
     goto install_teams
 ) else (
     echo Ошибка загрузки файла.
 	pause
     exit /b
 )
+
+:: # Установка Teams
+:install_teams
+cls
+echo Выполняется установка MS Teams...
+powershell -NoProfile -ExecutionPolicy Bypass -File %INSTALL_SCRIPT%
+echo.
+echo Установка успешно завершена.
+pause
+exit /b
