@@ -6,30 +6,34 @@ chcp 65001 >nul
 set "SITE_URL=https://go.microsoft.com/fwlink/?linkid=2196106"
 set "SITE_STATUS="
 set "FILE_STATUS="
-set "online_size_kb=-"
-set "local_size_kb=-"
+set "ONL_SIZE_KB=-"
+set "LOC_SIZE_KB=-"
+set "DISABLED_SITE="
+set "DISABLED_FILE="
 set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
 set "TEAMS_STATUS_FILE=%~dp0scripts\teams_status.txt"
 set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
 set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
 set "INSTALL_SCRIPT=%~dp0\scripts\install.ps1"
 set "DOWNLOAD_PATH=%~dp0teams\MSTeams-x64.msix"
-set "DEST_FOLDER=%~dp0teams"
 
 :: Определяем цвета
 set "COLOR_GREEN=[32m"
 set "COLOR_RED=[31m"
 set "COLOR_RESET=[0m"
+set "COLOR_GRAY=[90m"
 
 :: Проверка установленных версий Teams
 :check_teams
 cls
-echo Проверка установленных версий Microsoft Teams...
+echo Проверка установленных версий MS Teams...
 
+:: Запуск скрипта по проверке установленных версий Teams
 powershell -NoProfile -ExecutionPolicy Bypass -File %CHECK_SCRIPT%
 set /p TEAMS_STATUS=<"%TEAMS_STATUS_FILE%"
 del "%TEAMS_STATUS_FILE%"
 
+echo Проверка доступности сайта для скачивания MS Teams...
 :: Проверка доступности сайта
 curl -s --head %SITE_URL% | findstr /R "200 | 302" >nul
 if %errorlevel%==0 (
@@ -40,6 +44,7 @@ if %errorlevel%==0 (
     set "SITE_STATUS=Не доступен"
 )
 
+echo Проверка доступности локального файла MS Teams...
 :: Проверка наличия локальной версии файла в папке "teams"
 if exist "%LOCAL_FILE%" (
     set "FILE_STATUS=Доступен"
@@ -50,11 +55,11 @@ if exist "%LOCAL_FILE%" (
 )
 
 :: Рассчитываем размер в KB
-if defined online_size set /a online_size_kb=%online_size%/1024
-if defined local_size set /a local_size_kb=%local_size%/1024
+if defined online_size set /a ONL_SIZE_KB=%online_size%/1024
+if defined local_size set /a LOC_SIZE_KB=%local_size%/1024
 cls
 
-
+:: В зависимости от статуса Teams выводим меню
 if "%TEAMS_STATUS%"=="Not found" (
     goto install_menu
 ) else (
@@ -63,63 +68,64 @@ if "%TEAMS_STATUS%"=="Not found" (
 :: Проверка установленных версий Teams
 
 
+:: Установка Teams
 :install_menu
-:: Вывод статусов
+:: Определение статусов, выделение цветом
 if "%SITE_STATUS%"=="Доступен" (
-    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%online_size_kb% KB]
+    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
 ) else (
-    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%online_size_kb% KB]
+    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
 )
 
 if "%FILE_STATUS%"=="Доступен" (
-    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%local_size_kb% KB]
+    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
 ) else (
-    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%local_size_kb% KB]
+    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
 )
-:: Вывод статусов
 
+:: Определяем доступность пунктов
+if not "%SITE_STATUS%"=="Доступен" set "DISABLED_SITE=%COLOR_GRAY%"
+if not "%FILE_STATUS%"=="Доступен" set "DISABLED_FILE=%COLOR_GRAY%"
+
+if not "%SITE_STATUS%"=="Доступен" if not "%FILE_STATUS%"=="Доступен" (
+    set "DISABLED_SITE=%COLOR_GRAY%"
+    set "DISABLED_FILE=%COLOR_GRAY%"
+)
+
+:: Вывод меню с учетом недоступных пунктов
 echo.
 echo Microsoft Teams не установлен.
 echo.
-echo Выберите действие:
-echo 1. Скачать новую версию Microsoft Teams
-echo 2. Установить локальную версию
+echo 1. %DISABLED_SITE%Скачать новую версию Microsoft Teams%COLOR_RESET%
+echo 2. %DISABLED_FILE%Установить локальную версию%COLOR_RESET%
 echo 3. Повторить проверку
 echo 4. Выход
 echo.
 
+:: Запрос выбора
 set /p choice=Введите номер пункта: 
 
-::if "%choice%"=="1" goto download_file
-::if "%choice%"=="2" call install_teams.bat
-::if "%choice%"=="3" goto check_teams
-::if "%choice%"=="4" exit
+:: Обрабатываем выбор
+if "%choice%"=="1" if "%SITE_STATUS%"=="Доступен" (goto download_file)
+if "%choice%"=="2" if "%FILE_STATUS%"=="Доступен" (powershell -NoProfile -ExecutionPolicy Bypass -File %INSTALL_SCRIPT%)
+if "%choice%"=="3" (goto check_teams)
+if "%choice%"=="4" (exit)
 
-if "%choice%"=="1" (goto download_file) else (
-    if "%choice%"=="2" (call install_teams.bat) else (
-        if "%choice%"=="3" (goto check_teams) else (
-            if "%choice%"=="4" (exit) else (
-                cls
-                goto install_menu
-            )
-        )
-    )
-)
-
+cls
 goto install_menu
 
 :remove_menu
 :: Вывод статусов
 if "%SITE_STATUS%"=="Доступен" (
-    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%online_size_kb% KB]
+    echo Статус сайта: %COLOR_GREEN%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
 ) else (
-    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%online_size_kb% KB]
+    echo Статус сайта: %COLOR_RED%%SITE_STATUS%%COLOR_RESET% [%ONL_SIZE_KB% KB]
 )
 
 if "%FILE_STATUS%"=="Доступен" (
-    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%local_size_kb% KB]
+    echo Статус файла: %COLOR_GREEN%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
 ) else (
-    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%local_size_kb% KB]
+    echo Статус файла: %COLOR_RED%%FILE_STATUS%%COLOR_RESET% [%LOC_SIZE_KB% KB]
 )
 :: Вывод статусов
 
