@@ -41,7 +41,8 @@ echo Проверка установленных версий MS Teams...
 
 powershell -NoProfile -ExecutionPolicy Bypass -File %CHECK_SCRIPT%
 set /p TEAMS_STATUS=<"%TEAMS_STATUS_FILE%"
-del "%TEAMS_STATUS_FILE%"
+
+::del "%TEAMS_STATUS_FILE%"
 
 :: ## Проверка доступности сайта
 echo Проверка доступности сайта для скачивания MS Teams...
@@ -139,6 +140,8 @@ goto install_menu
 
 :: # Удаление Teams
 :remove_menu
+powershell -Command "(Get-Content %TEAMS_STATUS_FILE% -Raw) -replace '^\uFEFF','' | Set-Content %TEAMS_STATUS_FILE%"
+
 
 :: ## Вывод статусов
 echo Статус сайта: %display_site_status%
@@ -146,11 +149,13 @@ echo Статус файла: %display_file_status%
 
 echo.
 echo Microsoft Teams установлен.
-echo %TEAMS_STATUS%
+::echo %TEAMS_STATUS%
+echo.
+type "%TEAMS_STATUS_FILE%"
 echo.
 echo Выберите действие:
-echo 1. Удалить Classic Teams [Microsoft Teams]
-echo 2. Удалить New Teams     [MS Teams]
+echo 1. Удалить Teams Classic
+echo 2. Удалить Teams New
 echo 3. Повторить проверку
 echo 4. Выход
 echo.
@@ -162,6 +167,7 @@ if "%choice%"=="2" goto remove_new_teams
 if "%choice%"=="3" goto check_teams
 if "%choice%"=="4" exit
 
+del "%TEAMS_STATUS_FILE%"
 cls
 goto remove_menu
 :: # Удаление Teams
@@ -201,8 +207,9 @@ exit /b
 :: # Удаление Classic Teams
 :remove_classic_teams
 cls
-echo Выполняется удаление Classic Teams...
+echo Выполняется удаление Teams Classic...
 powershell -ExecutionPolicy Bypass -NoProfile -File %UNINSTALL_CLASSIC_SCRIPT%
+cls
 echo.
 echo Удаление Classic Teams успешно завершено.
 echo.
@@ -214,6 +221,7 @@ goto check_teams
 cls
 echo Выполняется удаление New Teams...
 powershell -ExecutionPolicy Bypass -NoProfile -File %UNINSTALL_NEW_SCRIPT%
+cls
 echo.
 echo Удаление New Teams успешно завершено.
 echo.
