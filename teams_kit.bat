@@ -13,8 +13,9 @@ set "DISABLED_FILE="
 set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
 set "TEAMS_STATUS_FILE=%~dp0scripts\teams_status.txt"
 set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
-::set "DOWNLOAD_SCRIPT=%~dp0\scripts\download.ps1"
 set "INSTALL_SCRIPT=%~dp0\scripts\InstallTeamsAllUsers.ps1"
+set "UNINSTALL_CLASSIC_SCRIPT=%~dp0\scripts\UninstallClassicTeams.ps1"
+set "UNINSTALL_NEW_SCRIPT=%~dp0\scripts\UninstallNewTeams.ps1"
 set "DOWNLOAD_PATH=%~dp0teams\MSTeams-x64.msix"
 
 :: Определяем цвета
@@ -127,6 +128,7 @@ cls
 goto install_menu
 :: # Установка Teams
 
+
 :: # Удаление Teams
 :remove_menu
 
@@ -139,30 +141,20 @@ echo Microsoft Teams установлен.
 echo %TEAMS_STATUS%
 echo.
 echo Выберите действие:
-echo 1. Удалить Classic Teams
-echo 2. Удалить New Teams
+echo 1. Удалить Classic Teams [Microsoft Teams]
+echo 2. Удалить New Teams [MS Teams]
 echo 3. Повторить проверку
 echo 4. Выход
 echo.
 
 set /p choice=Введите номер пункта: 
 
-::if "%choice%"=="1" powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0remove_classic.ps1"
-::if "%choice%"=="2" powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0remove_new.ps1"
-::if "%choice%"=="3" goto check_teams
-::if "%choice%"=="4" exit
+if "%choice%"=="1" goto remove_classic_teams
+if "%choice%"=="2" goto remove_new_teams
+if "%choice%"=="3" goto check_teams
+if "%choice%"=="4" exit
 
-if "%choice%"=="1" (powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0remove_classic.ps1") else (
-    if "%choice%"=="2" (powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0remove_new.ps1") else (
-        if "%choice%"=="3" (goto check_teams) else (
-            if "%choice%"=="4" (exit) else (
-                cls
-                goto remove_menu
-            )
-        )
-    )
-)
-
+cls
 goto remove_menu
 
 
@@ -191,8 +183,28 @@ if exist "%DOWNLOAD_PATH%" (
 :install_teams
 cls
 echo Выполняется установка MS Teams...
-powershell -NoProfile -ExecutionPolicy Bypass -File %INSTALL_SCRIPT%
-echo.
+powershell -NoProfile -ExecutionPolicy Bypass -Command %INSTALL_SCRIPT%
 echo Установка успешно завершена.
+echo.
 pause
 exit /b
+
+:: # Удаление Classic Teams
+:remove_classic_teams
+cls
+echo Выполняется удаление Classic Teams...
+powershell -ExecutionPolicy Bypass -NoProfile -Command %UNINSTALL_CLASSIC_SCRIPT%
+echo.
+echo Удаление Classic Teams успешно завершено.
+pause
+goto check_teams
+
+:: # Удаление New Teams
+:remove_new_teams
+cls
+echo Выполняется удаление New Teams...
+powershell -ExecutionPolicy Bypass -NoProfile -Command %UNINSTALL_NEW_SCRIPT%
+echo.
+echo Удаление New Teams успешно завершено.
+pause
+goto check_teams
