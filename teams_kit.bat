@@ -3,26 +3,34 @@
 chcp 65001 >nul
 
 :: Задаем переменные
-set "SITE_URL=https://go.microsoft.com/fwlink/?linkid=2196106"
 set "SITE_STATUS="
 set "FILE_STATUS="
 set "ONL_SIZE_KB=-"
 set "LOC_SIZE_KB=-"
 set "DISABLED_SITE="
 set "DISABLED_FILE="
-set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
+set "SITE_URL=https://go.microsoft.com/fwlink/?linkid=2196106"
 set "TEAMS_STATUS_FILE=%~dp0scripts\teams_status.txt"
+set "LOCAL_FILE=%~dp0teams\MSTeams-x64.msix"
 set "CHECK_SCRIPT=%~dp0scripts\CheckTeams.ps1"
 set "INSTALL_SCRIPT=%~dp0\scripts\InstallTeamsAllUsers.ps1"
 set "UNINSTALL_CLASSIC_SCRIPT=%~dp0\scripts\UninstallClassicTeams.ps1"
 set "UNINSTALL_NEW_SCRIPT=%~dp0\scripts\UninstallNewTeams.ps1"
-set "DOWNLOAD_PATH=%~dp0teams\MSTeams-x64.msix"
 
 :: Определяем цвета
+set "COLOR_GRAY=[90m"
 set "COLOR_GREEN=[32m"
 set "COLOR_RED=[31m"
 set "COLOR_RESET=[0m"
-set "COLOR_GRAY=[90m"
+
+:: Запускаем PowerShell-скрипт и проверяем, есть ли админ-права
+powershell -NoProfile -ExecutionPolicy Bypass -File "%CHECK_SCRIPT%" || (
+    echo.
+    echo %COLOR_RED%[Ошибка]%COLOR_RESET% Запустите этот скрипт от имени администратора!
+    echo.
+    pause
+    exit /b
+)
 
 :: # Проверка установленных версий MS Teams
 :check_teams
@@ -109,7 +117,7 @@ echo Статус файла: %display_file_status%
 echo.
 echo Microsoft Teams не установлен.
 echo.
-echo 1. %DISABLED_SITE%Скачать новую версию Microsoft Teams%COLOR_RESET%
+echo 1. %DISABLED_SITE%Скачать новую версию MS Teams%COLOR_RESET%
 echo 2. %DISABLED_FILE%Установить локальную версию%COLOR_RESET%
 echo 3. Повторить проверку
 echo 4. Выход
@@ -142,7 +150,7 @@ echo %TEAMS_STATUS%
 echo.
 echo Выберите действие:
 echo 1. Удалить Classic Teams [Microsoft Teams]
-echo 2. Удалить New Teams [MS Teams]
+echo 2. Удалить New Teams     [MS Teams]
 echo 3. Повторить проверку
 echo 4. Выход
 echo.
@@ -156,6 +164,7 @@ if "%choice%"=="4" exit
 
 cls
 goto remove_menu
+:: # Удаление Teams
 
 
 :: # Скачивание файла
@@ -167,9 +176,9 @@ if not exist "%~dp0teams" (
 echo.
 echo Загружаем новую версию Teams...
 
-powershell -Command "Start-BitsTransfer -Source '%SITE_URL%' -Destination '%DOWNLOAD_PATH%'"
+powershell -Command "Start-BitsTransfer -Source '%SITE_URL%' -Destination '%LOCAL_FILE%'"
 
-if exist "%DOWNLOAD_PATH%" (
+if exist "%LOCAL_FILE%" (
     echo Файл загружен успешно.
     echo Выполняется установка...
     goto install_teams
@@ -183,7 +192,7 @@ if exist "%DOWNLOAD_PATH%" (
 :install_teams
 cls
 echo Выполняется установка MS Teams...
-powershell -NoProfile -ExecutionPolicy Bypass -Command %INSTALL_SCRIPT%
+powershell -ExecutionPolicy Bypass -NoProfile -File %INSTALL_SCRIPT%
 echo Установка успешно завершена.
 echo.
 pause
@@ -193,9 +202,10 @@ exit /b
 :remove_classic_teams
 cls
 echo Выполняется удаление Classic Teams...
-powershell -ExecutionPolicy Bypass -NoProfile -Command %UNINSTALL_CLASSIC_SCRIPT%
+powershell -ExecutionPolicy Bypass -NoProfile -File %UNINSTALL_CLASSIC_SCRIPT%
 echo.
 echo Удаление Classic Teams успешно завершено.
+echo.
 pause
 goto check_teams
 
@@ -203,8 +213,9 @@ goto check_teams
 :remove_new_teams
 cls
 echo Выполняется удаление New Teams...
-powershell -ExecutionPolicy Bypass -NoProfile -Command %UNINSTALL_NEW_SCRIPT%
+powershell -ExecutionPolicy Bypass -NoProfile -File %UNINSTALL_NEW_SCRIPT%
 echo.
 echo Удаление New Teams успешно завершено.
+echo.
 pause
 goto check_teams
